@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gleneagles Men's Club</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; max-width:1000px; margin:2rem auto; padding:0 1rem; background:#f9f9f9; }
+    h1 { font-size:2rem; margin-bottom:1rem; text-align:center; }
+    .logo { height:80px; margin-bottom:1rem; text-align:center; }
+    .controls, .pagination { text-align:center; margin:1rem 0; }
+    .controls button, .pagination button { margin:0 0.5rem; padding:0.5rem 1rem; font-size:1rem; cursor:pointer; }
+    table { width:100%; border-collapse:collapse; margin-top:1rem; background:#fff; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+    th, td { text-align:left; padding:0.75rem; border-bottom:1px solid #ddd; }
+    th { background:#f0f0f0; }
+    .muted { color:#666; font-size:0.9rem; text-align:center; padding:1rem; }
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <!-- Future logo goes here -->
+  </div>
+  <h1>Gleneagles Men's Club</h1>
+
+  <div class="controls">
+    <button id="sortLast">Sort by Last Name</button>
+    <button id="sortFirst">Sort by First Name</button>
+    <button id="sortHandicap">Sort by Handicap</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Handicap</th>
+        <th>Honeypot</th>
+        <th>Tournament</th>
+      </tr>
+    </thead>
+    <tbody id="players-body">
+      <tr><td colspan="4" class="muted">Loading players...</td></tr>
+    </tbody>
+  </table>
+
+  <div class="pagination">
+    <button id="prevPage">Previous</button>
+    <span id="page-info"></span>
+    <button id="nextPage">Next</button>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const SUPABASE_URL = 'https://ekevotcpnrzncxigemnp.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZXZvdGNwbnJ6bmN4aWdlbW5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0NDkwMTAsImV4cCI6MjA3NjAyNTAxMH0.D6iIHHlfGfpuh0NkUTVMWOWE7Vepw9GlJn_OcfRxg6E';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const playersBody = document.getElementById('players-body');
+    const pageInfo = document.getElementById('page-info');
+    const sortLastBtn = document.getElementById('sortLast');
+    const sortFirstBtn = document.getElementById('sortFirst');
+    const sortHandicapBtn = document.getElementById('sortHandicap');
+    const prevPageBtn = document.getElementById('prevPage');
+    const nextPageBtn = document.getElementById('nextPage');
+
+    let allPlayers = [];
+    let sortField = 'last';
+    let currentPage = 0;
+    const pageSize = 20;
+
+    function escapeHtml(s) {
+      if (s === null || s === undefined) return '';
+      return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function sortPlayers(data) {
+      return [...data].sort((a, b) => {
+        const aVal = a[sortField];
+        const bVal = b[sortField];
+
+        if (sortField === 'handicap') {
+          return (Number(aVal) || 0) - (Number(bVal) || 0);
+        }
+
+        const aStr = String(aVal ?? '').toLowerCase();
+        const bStr = String(bVal ?? '').toLowerCase();
+        return aStr.localeCompare(bStr);
+      });
+    }
+
+    function renderTable() {
+      const sorted = sortPlayers(allPlayers);
+      const start = currentPage * pageSize;
+      const end = start + pageSize;
+      const pagePlayers = sorted.slice(start, end);
+
+      if (pagePlayers.length === 0) {
+        playersBody.innerHTML = '<tr><td colspan="4" class="muted">No players found</td></tr>';
+        pageInfo.textContent = '';
+        return;
+      }
+
+      playersBody.innerHTML = pagePlayers.map(p => `
+        <tr>
+          <td>${escapeHtml(p.first)} ${escapeHtml(p.last)}</td>
+          <td>${escapeHtml(p.handicap)}</td>
+          <td>${escapeHtml(p.hhc)}</td>
+          <td>${escapeHtml(p.thc)}</td>
+        </tr>
+      `).join('');
+
+      const totalPages = Math.ceil(allPlayers.length / pageSize);
+      pageInfo.textContent = `Page ${currentPage + 1} of ${totalPages}`;
+    }
+
+    async function fetchPlayers() {
+      const { data, error } = await supabase
+        .from('players')
+        .select('first, last, handicap, hhc, thc');
+
+      if (error) {
+        playersBody.innerHTML = `<tr><td colspan="4" class="muted">Error loading players: ${escapeHtml(error.message)}</td></tr>`;
+        pageInfo.textContent = '';
+        return;
+      }
+
+      allPlayers = data || [];
+      currentPage = 0;
+      renderTable();
+    }
+
+    sortLastBtn.addEventListener('click', () => {
+      sortField = 'last';
+      currentPage = 0;
+      renderTable();
+    });
+
+    sortFirstBtn.addEventListener('click', () => {
+      sortField = 'first';
+      currentPage = 0;
+      renderTable();
+    });
+
+    sortHandicapBtn.addEventListener('click', () => {
+      sortField = 'handicap';
+      currentPage = 0;
+      renderTable();
+    });
+
+    prevPageBtn.addEventListener('click', () => {
+      if (currentPage > 0) {
+        currentPage--;
+        renderTable();
+      }
+    });
+
+    nextPageBtn.addEventListener('click', () => {
+      const maxPage = Math.floor(allPlayers.length / pageSize);
+      if (currentPage < maxPage) {
+        currentPage++;
+        renderTable();
+      }
+    });
+
+    fetchPlayers();
+    setInterval(fetchPlayers, 30000); // refresh every 30 seconds
+  </script>
+</body>
+</html>
