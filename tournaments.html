@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gleneagles Men's Club</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+    }
+
+    header.sticky-header {
+      position: sticky;
+      top: 0;
+      background: #f8f8f8;
+      padding: 0.5em 1em;
+      border-bottom: 1px solid #ccc;
+      z-index: 1000;
+      text-align: center;
+    }
+
+    .logo-container img {
+      height: 64px;
+      width: auto;
+      margin-bottom: 0.3em;
+    }
+
+    .datetime {
+      font-size: 0.9em;
+      color: #333;
+      margin-bottom: 0.3em;
+    }
+
+    .return-home {
+      padding: 0.3em 0.6em;
+      font-size: 0.9em;
+      background: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    
+    table {
+      border-collapse: collapse;
+      width: auto;
+      margin: 1em;
+    }
+
+    th, td {
+      padding: 4px 6px;
+      border: 1px solid #ccc;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    input {
+      font-size: 0.9em;
+      padding: 2px 4px;
+      border: 1px solid #aaa;
+      border-radius: 3px;
+      width: auto;
+      min-width: 60px;
+      max-width: 240px;
+      box-sizing: content-box;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    input.unsaved {
+      background-color: #fff8cc;
+      transition: background-color 0.3s ease;
+    }
+
+    tr.normalized {
+      border-left: 4px solid #4CAF50;
+      background-color: #eaffea;
+    }
+
+    .button-bar {
+      margin: 1em;
+    }
+
+    .button-bar button {
+      margin-right: 0.5em;
+      padding: 0.4em 0.8em;
+      font-size: 0.9em;
+      border: none;
+      border-radius: 4px;
+      background: #0077cc;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header class="sticky-header">
+    <div class="logo-container">
+      <img src="GE_logo.png" alt="Gleneagles Logo" />
+    </div>
+    <div class="datetime" id="datetime">Loading time…</div>
+    <a href="index.html" class="return-home">Return to Home</a>
+  </header>
+
+
+  <main>
+    <table id="tournamentsTable">
+      <thead>
+        <tr id="tableHeaders"></tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="button-bar">
+      <button onclick="saveChanges()">Save Changes</button>
+      <button onclick="normalizeDates()">Normalize Dates</button>
+      <button onclick="resetChanges()">Reset Changes</button>
+    </div>
+  </main>
+
+
+
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+  // Supabase setup
+  const supabase = createClient(
+    'https://ekevotcpnrzncxigemnp.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZXZvdGNwbnJ6bmN4aWdlbW5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0NDkwMTAsImV4cCI6MjA3NjAyNTAxMH0.D6iIHHlfGfpuh0NkUTVMWOWE7Vepw9GlJn_OcfRxg6E'
+  );
+
+  const tableName = 'tournaments';
+  let originalData = [];
+  let skipNormalization = false;
+
+  const columnOrder = [
+    'tour_name', 'tour_organizer', 'tour_days', 'tour_players',
+    'tour_date1', 'tour_date2', 'tour_date3', 'tour_date4',
+    'tour_date5', 'tour_date6', 'tour_date7'
+  ];
+
+  // Helper functions
+  const holidayCache = {};
+
+  async function getHolidaySet(year) {
+    if (holidayCache[year]) return holidayCache[year];
+    const url = `https://canada-holidays.ca/api/v1/holidays?year=${year}`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const holidaySet = new Set(data.holidays.map(h => h.date));
+      holidayCache[year] = holidaySet;
+      return holidaySet;
+    } catch (err) {
+      console.error('Failed to fetch holidays:', err);
+      return new Set();
+    }
+  }
+
+  function isValidTournamentWeekday(date) {
+    const day = date.getDay();
+    return day === 1 || day === 3 || day === 5; // Mon, Wed, Fri
+  }
+
+  function formatDate(date) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  function normalizeStartDate(date, holidaySet, year) {
+    const d = new Date(date);
+    d.setFullYear(year);
+    while (
+      (!isValidTournamentWeekday(d) || holidaySet.has(formatDate(d))) &&
+      d.getFullYear() === year
+    ) {
+      d.setDate(d.getDate() + 1);
+    }
+    return d;
+  }
+
+  function getNextValidDate(date, holidaySet, yearLimit) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + 1);
+    while (
+      (!isValidTournamentWeekday(d) || holidaySet.has(formatDate(d))) &&
+      d.getFullYear() === yearLimit
+    ) {
+      d.setDate(d.getDate() + 1);
+    }
+    return d;
+  }
+
+  // Main logic
+  async function fetchData() {
+    const { data, error } = await supabase.from(tableName).select('*');
+    if (error) {
+      console.error('Error fetching data:', error);
+      return;
+    }
+
+    originalData = JSON.parse(JSON.stringify(data));
+    renderTable(data);
+  }
+
+  function getHeaderWidths(headers) {
+    const widths = {};
+    const span = document.createElement('span');
+    span.style.visibility = 'hidden';
+    span.style.position = 'absolute';
+    span.style.whiteSpace = 'pre';
+    span.style.font = '0.9em system-ui';
+    document.body.appendChild(span);
+
+    headers.forEach(header => {
+      span.textContent = header;
+      widths[header] = Math.min(span.offsetWidth + 20, 240);
+    });
+
+    document.body.removeChild(span);
+    return widths;
+  }
+
+  function renderTable(data) {
+    const headerRow = document.getElementById('tableHeaders');
+    const body = document.getElementById('tableBody');
+
+    if (!data || data.length === 0) {
+      headerRow.innerHTML = '<th>No data available</th>';
+      body.innerHTML = '';
+      return;
+    }
+
+    const headers = columnOrder;
+    const headerWidths = getHeaderWidths(headers);
+
+    const sorted = [...data].sort((a, b) => {
+      const dateA = new Date(a.tour_date1 ?? '');
+      const dateB = new Date(b.tour_date1 ?? '');
+      if (isNaN(dateA) && isNaN(dateB)) return 0;
+      if (isNaN(dateA)) return 1;
+      if (isNaN(dateB)) return -1;
+      return dateA - dateB;
+    });
+
+    headerRow.innerHTML = '';
+    body.innerHTML = '';
+
+    headers.forEach(header => {
+      const th = document.createElement('th');
+      th.textContent = header;
+      headerRow.appendChild(th);
+    });
+
+    sorted.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.dataset.id = String(row.id);
+
+      headers.forEach(header => {
+        const td = document.createElement('td');
+        const input = document.createElement('input');
+        input.value = row[header] ?? '';
+        input.dataset.id = String(row.id);
+        input.dataset.column = header;
+        input.style.width = `${headerWidths[header]}px`;
+        input.title = input.value;
+        input.readOnly = header === 'id';
+        input.addEventListener('input', () => {
+          input.classList.add('unsaved');
+          tr.classList.remove('normalized');
+        });
+        td.appendChild(input);
+        tr.appendChild(td);
+      });
+
+      body.appendChild(tr);
+    });
+  }
+
+async function normalizeDates() {
+  const allRows = document.querySelectorAll('tbody tr');
+  let correctionCount = 0;
+  let processedCount = 0;
+
+  for (let index = 0; index < allRows.length; index++) {
+    const row = allRows[index];
+    const inputs = row.querySelectorAll('input');
+    const values = {};
+    inputs.forEach(input => {
+      values[input.dataset.column] = input;
+    });
+
+    const rawStart = values['tour_date1']?.value?.trim();
+    const rawDays = parseInt(values['tour_days']?.value ?? '1');
+    if (isNaN(rawDays) || rawDays < 1) continue;
+
+    let startDate = rawStart ? new Date(rawStart) : null;
+    if (!(startDate instanceof Date) || isNaN(startDate)) continue;
+
+    const tourYear = startDate.getFullYear();
+    const holidaySet = await getHolidaySet(tourYear);
+    processedCount++;
+
+    const normalizedStart = normalizeStartDate(startDate, holidaySet, tourYear);
+    const correctedStart = formatDate(normalizedStart);
+
+    let formattedStart = '';
+    if (rawStart) {
+      const parsedStart = new Date(rawStart);
+      if (!isNaN(parsedStart)) {
+        formattedStart = formatDate(parsedStart);
+      }
+    }
+
+    if (formattedStart !== correctedStart) {
+      values['tour_date1'].classList.add('unsaved');
+      values['tour_date1'].value = correctedStart;
+      values['tour_date1'].dispatchEvent(new Event('input', { bubbles: true }));
+      correctionCount++;
+    }
+
+    let current = new Date(correctedStart);
+
+    for (let i = 2; i <= 7; i++) {
+      const key = `tour_date${i}`;
+      const input = values[key];
+      if (!input) continue;
+
+      let newDate;
+      if (rawDays === 1 || i > rawDays) {
+        newDate = null;
+      } else {
+        current = getNextValidDate(current, holidaySet, tourYear);
+        newDate = current;
+      }
+
+      const corrected = newDate ? formatDate(newDate) : '';
+      let currentValue = input.value.trim();
+      let formattedCurrent = '';
+
+      if (currentValue) {
+        const parsed = new Date(currentValue);
+        if (!isNaN(parsed)) {
+          formattedCurrent = formatDate(parsed);
+        }
+      }
+
+      if (formattedCurrent !== corrected) {
+        input.classList.add('unsaved');
+        input.value = corrected;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        correctionCount++;
+      }
+    }
+
+    row.classList.add('normalized');
+  }
+
+  if (processedCount === 0) {
+    alert('No rows were eligible for normalization — check for missing or invalid dates.');
+  } else if (correctionCount > 0) {
+    alert(`${correctionCount} date field(s) normalized across all rows.`);
+  } else {
+    alert('All dates are already valid — no normalization needed.');
+  }
+}
+
+async function saveChanges() {
+  const inputs = document.querySelectorAll('tbody input.unsaved');
+  const updatedRows = {};
+
+  inputs.forEach(input => {
+    const rawId = input.dataset.id;
+    const column = input.dataset.column;
+    if (!rawId || !column) return;
+
+    const id = Number(rawId);
+    if (!updatedRows[id]) updatedRows[id] = {};
+    updatedRows[id][column] = input.value;
+  });
+
+  const updates = Object.entries(updatedRows);
+  const totalUnsavedInputs = inputs.length;
+
+  if (updates.length === 0) {
+    alert('No changes detected.');
+    return;
+  }
+
+  let updateCount = 0;
+  let skippedCount = 0;
+
+  for (const [idStr, fields] of updates) {
+    const id = Number(idStr);
+
+    Object.keys(fields).forEach(key => {
+      if (
+        fields[key] === undefined ||
+        fields[key] === null ||
+        (typeof fields[key] === 'string' && fields[key].trim() === '')
+      ) {
+        delete fields[key];
+      }
+    });
+
+    if (Object.keys(fields).length === 0) {
+      skippedCount++;
+      continue;
+    }
+
+    const { data: updated, error } = await supabase
+      .from(tableName)
+      .update(fields)
+      .eq('id', id);
+
+    if (error) {
+      console.error(`Error updating id ${id}:`, error.message || error.details || error);
+    } else {
+      updateCount++;
+    }
+  }
+
+  if (updateCount > 0) {
+    alert(`${updateCount} row(s) updated successfully.`);
+  } else if (skippedCount > 0) {
+    alert('No updates were required — all changes were empty or redundant.');
+  } else if (totalUnsavedInputs > 0) {
+    alert('No valid changes were found — fields may have been empty or unchanged.');
+  } else {
+    alert('No changes detected.');
+  }
+
+  document.querySelectorAll('input.unsaved').forEach(input => {
+    input.classList.remove('unsaved');
+  });
+
+  skipNormalization = false;
+  await fetchData();
+  normalizeDates();
+}
+
+  function resetChanges() {
+    renderTable(originalData);
+    document.querySelectorAll('input.unsaved').forEach(input => {
+      input.classList.remove('unsaved');
+    });
+    document.querySelectorAll('tr.normalized').forEach(row => {
+      row.classList.remove('normalized');
+    });
+  }
+
+  function updateDateTime() {
+    const now = new Date();
+    const formatted = now.toLocaleString(undefined, {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    document.getElementById('datetime').textContent = formatted;
+  }
+
+  // Global bindings
+  window.saveChanges = saveChanges;
+  window.normalizeDates = normalizeDates;
+  window.resetChanges = resetChanges;
+
+  window.onload = async () => {
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    await fetchData();         // ✅ Ensure table is rendered first
+    normalizeDates();          // ✅ Then normalize with visible DOM
+  };
+</script>
+      
+</body>
+</html>

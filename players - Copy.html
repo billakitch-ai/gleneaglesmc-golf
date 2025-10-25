@@ -75,16 +75,12 @@
   </style>
 </head>
 <body>
-  <header id="stickyHeader">
-    <div style="text-align:center; padding:0.5rem;">
-      <img src="GE_Logo.png" alt="Gleneagles Logo" style="max-height:180px;" />
+  <header class="sticky-header">
+    <div class="logo-container">
+      <img src="GE_logo.png" alt="Gleneagles Logo" />
     </div>
-    <div style="display:flex; justify-content:center; gap:2rem; align-items:center; padding:0.5rem 1rem;">
-      <div id="datetime">Loading time...</div>
-      <a href="index.html" style="background:#0077cc; color:#fff; font-weight:bold; padding:0.6rem 1.2rem; border-radius:6px; text-decoration:none; box-shadow:0 2px 4px rgba(0,0,0,0.2);">
-        Return to Home
-      </a>
-    </div>
+    <div class="datetime" id="datetime">Loading time…</div>
+    <a href="index.html" class="return-home">Return to Home</a>
   </header>
 
   <script>

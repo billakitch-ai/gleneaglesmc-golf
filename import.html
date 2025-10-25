@@ -1,184 +1,282 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Import Handicap File</title>
+    <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gleneagles MC</title>
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; max-width:1000px; margin:2rem auto; padding:0 1rem; background:#f9f9f9; }
-    h1 { font-size:2rem; margin-bottom:1rem; text-align:center; }
-    input[type="file"] { margin-bottom:0.5rem; }
-    table { width:100%; border-collapse:collapse; margin-top:1rem; background:#fff; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
-    th.left, td.left { text-align:left; }
-    th.right, td.right { text-align:right; }
-    th, td { padding:0.75rem; border-bottom:1px solid #ddd; }
-    .status { margin-top:1rem; font-size:1rem; text-align:center; font-weight:bold; }
-    .success { color:green; }
-    .error { color:red; }
-    .loading { color:#333; }
-    button { margin:0.5rem 0 1rem 0; padding:0.5rem 1rem; font-size:1rem; cursor:pointer; }
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    header.sticky-header {
+      position: sticky;
+      top: 0;
+      background: #f8f8f8;
+      padding: 0.5em 1em;
+      border-bottom: 1px solid #ccc;
+      z-index: 1000;
+      text-align: center;
+    }
+
+    .logo-container img {
+      height: 64px;
+      width: auto;
+      margin-bottom: 0.3em;
+    }
+
+    .datetime {
+      font-size: 0.9em;
+      color: #333;
+      margin-bottom: 0.3em;
+    }
+
+    .return-home {
+      padding: 0.3em 0.6em;
+      font-size: 0.9em;
+      background: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
-  <h1>Import Handicap File</h1>
+  <header class="sticky-header">
+    <div class="logo-container">
+      <img src="GE_logo.png" alt="Gleneagles Logo" />
+    </div>
+    <div class="datetime" id="datetime">Loading time…</div>
+    <a href="index.html" class="return-home">Return to Home</a>
+  </header>
+
+  <!-- ✅ Required DOM elements -->
+  <label for="cutoffInput"><strong>Low/High Cutoff:</strong></label>
+  <input type="number" id="cutoffInput" value="21" min="0" />
+  <br />
   <input type="file" id="fileInput" accept=".csv" />
   <button id="commitButton" style="display:none;">Commit to Players Table</button>
   <button id="cancelButton" style="display:none;">Cancel Import</button>
   <div id="status" class="status"></div>
   <div id="preview"></div>
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    const supabase = createClient(
-      'https://ekevotcpnrzncxigemnp.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZXZvdGNwbnJ6bmN4aWdlbW5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0NDkwMTAsImV4cCI6MjA3NjAyNTAxMH0.D6iIHHlfGfpuh0NkUTVMWOWE7Vepw9GlJn_OcfRxg6E'
-    );
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    const fileInput = document.getElementById('fileInput');
-    const status = document.getElementById('status');
-    const preview = document.getElementById('preview');
-    const commitButton = document.getElementById('commitButton');
-    const cancelButton = document.getElementById('cancelButton');
+  const supabase = createClient(
+    'https://ekevotcpnrzncxigemnp.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZXZvdGNwbnJ6bmN4aWdlbW5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0NDkwMTAsImV4cCI6MjA3NjAyNTAxMH0.D6iIHHlfGfpuh0NkUTVMWOWE7Vepw9GlJn_OcfRxg6E'
+  );
 
-    cancelButton.addEventListener('click', () => {
-      resetInterface();
+  const fileInput = document.getElementById('fileInput');
+  const cutoffInput = document.getElementById('cutoffInput');
+  const status = document.getElementById('status');
+  const preview = document.getElementById('preview');
+  const commitButton = document.getElementById('commitButton');
+  const cancelButton = document.getElementById('cancelButton');
+
+  let importedRawRows = [];
+
+  function classifyRows(rawRows, cutoff) {
+    return rawRows.map(row => {
+      const thc = Math.ceil(row.handicap / 2);
+      const hhc = row.handicap / 2;
+      const high_low = row.handicap <= cutoff ? 'Low' : 'High';
+      return {
+        ...row,
+        thc,
+        hhc,
+        high_low
+      };
     });
+  }
 
-    function resetInterface() {
-      status.textContent = '';
-      status.className = 'status';
-      preview.innerHTML = '';
-      commitButton.style.display = 'none';
-      cancelButton.style.display = 'none';
-    }
+  function renderTable(rows, title) {
+    if (!rows.length) return `<h3>${title}</h3><p>None</p>`;
 
-    fileInput.addEventListener('click', () => {
-      fileInput.value = null;
-    });
+    const lowCount = rows.filter(r => r.high_low === 'Low').length;
+    const highCount = rows.filter(r => r.high_low === 'High').length;
 
-    fileInput.addEventListener('change', async () => {
-      try {
-        const file = fileInput.files[0];
-        if (!file) return;
-
-        resetInterface();
-        status.textContent = '⏳ Clearing previous import...';
-        status.className = 'status loading';
-
-        await supabase.from('players_import').delete().neq('network_id', '');
-
-        status.textContent = '⏳ Importing new file...';
-
-        const text = await file.text();
-        const lines = text.trim().split(/\r?\n/);
-        const headers = lines[0].replace(/^\uFEFF/, '').split(',').map(h => h.trim().toLowerCase());
-        const rows = [];
-
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',').map(v => v.trim());
-          const row = {};
-          headers.forEach((h, idx) => row[h] = values[idx]);
-
-          const name = row.name || `${row.first || ''} ${row.last || ''}`.trim();
-          const first = row.first || '';
-          const last = row.last || '';
-          const network_id = row.network_id || '';
-          const handicap = parseFloat(row.handicap);
-          if (!name || !network_id || isNaN(handicap)) continue;
-
-          const thc = Math.ceil(handicap / 2);
-          const hhc = handicap / 2;
-          const high_low = handicap <= 21 ? 'Low' : 'High';
-
-          rows.push({
-            network_id,
-            name,
-            first,
-            last,
-            handicap,
-            thc,
-            hhc,
-            high_low,
-            imported_at: new Date().toISOString()
-          });
-        }
-
-        if (rows.length === 0) {
-          status.textContent = '⚠️ No valid rows found in the file.';
-          status.className = 'status error';
-          return;
-        }
-
-        await supabase.from('players_import').insert(rows);
-
-        status.textContent = `✅ Import complete: ${rows.length} rows added`;
-        status.className = 'status success';
-        commitButton.style.display = 'inline-block';
-        cancelButton.style.display = 'inline-block';
-
-        preview.innerHTML = renderTable(rows, 'Imported Rows');
-        preview.scrollIntoView({ behavior: 'smooth' });
-      } catch (err) {
-        console.error('Import failed:', err);
-        status.textContent = `❌ Import failed: ${err.message || err}`;
-        status.className = 'status error';
-      }
-    });
-
-    commitButton.addEventListener('click', async () => {
-      try {
-        status.textContent = '⏳ Committing to players table...';
-        status.className = 'status loading';
-
-        const { data: staged } = await supabase.from('players_import').select('*');
-        await supabase.from('players').delete().neq('network_id', '');
-        await supabase.from('players').insert(staged);
-
-        status.textContent = `✅ Players table updated with ${staged.length} rows`;
-        status.className = 'status success';
-        preview.scrollIntoView({ behavior: 'smooth' });
-      } catch (err) {
-        console.error('Commit failed:', err);
-        status.textContent = `❌ Commit failed: ${err.message || err}`;
-        status.className = 'status error';
-      }
-    });
-
-    function renderTable(rows, title) {
-      if (!rows.length) return `<h3>${title}</h3><p>None</p>`;
-      return `
+    return `
+      <div style="text-align:center; margin-bottom:0.5rem;">
+        <p><strong>Low:</strong> ${lowCount} players <strong>High:</strong> ${highCount} players</p>
         <h3>${title} (${rows.length})</h3>
-        <table>
-          <thead>
-            <tr>
-              <th class="left">Name</th>
-              <th class="left">First</th>
-              <th class="left">Last</th>
-              <th class="right">Handicap</th>
-              <th class="right">THC</th>
-              <th class="right">HHC</th>
-              <th class="left">High/Low</th>
-              <th class="left">Network ID</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(row => `
-              <tr>
-                <td class="left">${row.name}</td>
-                <td class="left">${row.first}</td>
-                <td class="left">${row.last}</td>
-                <td class="right">${row.handicap}</td>
-                <td class="right">${row.thc}</td>
-                <td class="right">${row.hhc}</td>
-                <td class="left">${row.high_low}</td>
-                <td class="left">${row.network_id}</td>
+      </div>
+      <table style="font-size:0.85rem; width:100%; border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:right;">#</th>
+            <th style="text-align:left;">Name</th>
+            <th style="text-align:left;">First</th>
+            <th style="text-align:left;">Last</th>
+            <th style="text-align:right;">Handicap</th>
+            <th style="text-align:left;">City</th>
+            <th style="text-align:left;">Tour City</th>
+            <th style="text-align:left;">Address</th>
+            <th style="text-align:left;">Postal Code</th>
+            <th style="text-align:left;">Email</th>
+            <th style="text-align:left;">Phone</th>
+            <th style="text-align:right;">THC</th>
+            <th style="text-align:right;">HHC</th>
+            <th style="text-align:left;">High/Low</th>
+            <th style="text-align:left;">Network ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((row, index) => {
+            const bg = row.high_low === 'Low'
+              ? 'background-color:#fff9c4;'
+              : row.high_low === 'High'
+              ? 'background-color:#ffe0b2;'
+              : '';
+            return `
+              <tr style="${bg}">
+                <td style="text-align:right;">${index + 1}</td>
+                <td style="text-align:left;">${row.name}</td>
+                <td style="text-align:left;">${row.first}</td>
+                <td style="text-align:left;">${row.last}</td>
+                <td style="text-align:right;">${row.handicap}</td>
+                <td style="text-align:left;">${row.city || ''}</td>
+                <td style="text-align:left;">${row.tour_city || ''}</td>
+                <td style="text-align:left;">${row.address || ''}</td>
+                <td style="text-align:left;">${row.postal_code || ''}</td>
+                <td style="text-align:left;">${row.email || ''}</td>
+                <td style="text-align:left;">${row.phone || ''}</td>
+                <td style="text-align:right;">${row.thc}</td>
+                <td style="text-align:right;">${row.hhc}</td>
+                <td style="text-align:left;">${row.high_low}</td>
+                <td style="text-align:left;">${row.network_id}</td>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  cancelButton.addEventListener('click', () => {
+    status.textContent = '';
+    status.className = 'status';
+    preview.innerHTML = '';
+    commitButton.style.display = 'none';
+    cancelButton.style.display = 'none';
+    importedRawRows = [];
+  });
+
+  cutoffInput.addEventListener('input', () => {
+    const cutoff = parseFloat(cutoffInput.value);
+    if (isNaN(cutoff) || importedRawRows.length === 0) return;
+    const reclassified = classifyRows(importedRawRows, cutoff);
+    preview.innerHTML = renderTable(reclassified, 'Updated Preview');
+  });
+
+  fileInput.addEventListener('click', () => {
+    fileInput.value = null;
+  });
+
+  fileInput.addEventListener('change', async () => {
+    try {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      status.textContent = '⏳ Clearing previous import...';
+      status.className = 'status loading';
+      preview.innerHTML = '';
+      await supabase.from('players_import').delete().not('network_id', 'is', null);
+
+      status.textContent = '⏳ Importing new file...';
+
+      const text = await file.text();
+      const lines = text.trim().split(/\r?\n/);
+      const headers = lines[0].replace(/^\uFEFF/, '').split(',').map(h => h.trim().toLowerCase());
+      importedRawRows = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const row = {};
+        headers.forEach((h, idx) => row[h] = values[idx]);
+
+        const name = row.name || `${row.first || ''} ${row.last || ''}`.trim();
+        const first = row.first || '';
+        const last = row.last || '';
+        const network_id = row.network_id || '';
+        const handicap = parseFloat(row.handicap);
+        if (!name || !network_id || isNaN(handicap)) continue;
+
+        importedRawRows.push({
+          network_id,
+          name,
+          first,
+          last,
+          handicap,
+          city: row.city || '',
+          tour_city: row.tour_city || '',
+          address: row.address || '',
+          postal_code: row.postal_code || '',
+          email: row.email || '',
+          phone: row.phone || ''
+        });
+      }
+
+      if (importedRawRows.length === 0) {
+        status.textContent = '⚠️ No valid rows found in the file.';
+        status.className = 'status error';
+        return;
+      }
+
+      const cutoff = parseFloat(cutoffInput.value);
+      const classified = classifyRows(importedRawRows, cutoff);
+      await supabase.from('players_import').insert(classified);
+
+      status.textContent = `✅ Import complete: ${classified.length} rows added`;
+      status.className = 'status success';
+      commitButton.style.display = 'inline-block';
+      cancelButton.style.display = 'inline-block';
+
+      preview.innerHTML = renderTable(classified, 'Imported Rows');
+      preview.scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+      console.error('Import failed:', err);
+      status.textContent = `❌ Import failed: ${err.message || err}`;
+      status.className = 'status error';
     }
-  </script>
+  });
+
+  commitButton.addEventListener('click', async () => {
+    try {
+      if (!Array.isArray(importedRawRows) || importedRawRows.length === 0) {
+        status.textContent = '⚠️ No data to commit.';
+        status.className = 'status error';
+        return;
+      }
+
+      status.textContent = '⏳ Committing to players table...';
+      status.className = 'status loading';
+
+      const cutoff = parseFloat(cutoffInput.value);
+      const classified = classifyRows(importedRawRows, cutoff);
+
+           await supabase.from('players').insert(classified);
+
+      status.textContent = `✅ Players table updated with ${classified.length} rows`;
+      status.className = 'status success';
+      preview.scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+      console.error('Commit failed:', err);
+      status.textContent = `❌ Commit failed: ${err.message || err}`;
+      status.className = 'status error';
+    }
+  });
+</script>
+
+
+
+</body>
+</html>
+     
 </body>
 </html>
