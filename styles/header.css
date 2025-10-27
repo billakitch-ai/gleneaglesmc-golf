@@ -1,0 +1,132 @@
+/* Sticky Header Container */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: #fff;
+  border-bottom: 2px solid #999;
+  padding: 12px 24px;
+  height: 100px;        /* 🔧 Adjust this to test header height */
+  max-height: 100px;
+  overflow: hidden;
+}
+
+/* Header Content Layout */
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 24px;
+  height: 100%;
+}
+
+/* Center Block */
+.center-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+/* Logo Row: GE Logo + Designed By */
+.logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100%;
+}
+
+/* Logo Images */
+.main-logo,
+.designedby-logo {
+  max-height: 100%;
+  height: auto;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Date/Time Display */
+.datetime {
+  text-align: center;
+  margin-top: 6px;
+  font-size: 1rem;
+  color: #444;
+}
+
+/* Home Button Styling */
+.home-button {
+  display: flex;
+  align-items: center;
+}
+
+.return-home {
+  text-decoration: none;
+  color: #0077cc;
+  font-weight: bold;
+  font-size: 1.1rem;
+  padding: 8px 12px;
+  border: 2px solid #0077cc;
+  border-radius: 6px;
+}
+
+.return-home:hover {
+  background-color: #0077cc;
+  color: #fff;
+}
+
+/* ─────────────────────────────── */
+/* 📱 Responsive Layout Adjustments */
+/* ─────────────────────────────── */
+
+/* Tablets (≤ 768px) */
+@media screen and (max-width: 768px) {
+  .sticky-header {
+    height: 80px;
+    max-height: 80px;
+    padding: 8px 16px;
+  }
+
+  .logo-row {
+    gap: 12px;
+  }
+
+  .datetime {
+    font-size: 0.9rem;
+  }
+
+  .return-home {
+    font-size: 1rem;
+    padding: 6px 10px;
+  }
+}
+
+/* Mobile (≤ 480px) */
+@media screen and (max-width: 480px) {
+  .header-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .logo-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .main-logo,
+  .designedby-logo {
+    max-height: 60px;
+  }
+
+  .datetime {
+    font-size: 0.85rem;
+    margin-top: 4px;
+  }
+
+  .return-home {
+    font-size: 0.95rem;
+    padding: 5px 8px;
+  }
+}
