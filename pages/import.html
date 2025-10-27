@@ -42,6 +42,13 @@
       cursor: pointer;
       text-decoration: none;
     }
+
+    #cancelButton {
+      display: none;
+    }
+    #commitButton {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -55,11 +62,11 @@
 
   <!-- ✅ Required DOM elements -->
   <label for="cutoffInput"><strong>Low/High Cutoff:</strong></label>
-  <input type="number" id="cutoffInput" value="21" min="0" />
+  <button id="commitButton">Commit to Players Table</button>
   <br />
-  <input type="file" id="fileInput" accept=".csv" />
-  <button id="commitButton" style="display:none;">Commit to Players Table</button>
-  <button id="cancelButton" style="display:none;">Cancel Import</button>
+  <input type="file" id="fileInput" accept=".csv" title="Select a CSV file to import" placeholder="Choose CSV file" />
+  <button id="commitButton">Commit to Players Table</button>
+  <button id="cancelButton">Cancel Import</button>
   <div id="status" class="status"></div>
   <div id="preview"></div>
 
