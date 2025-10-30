@@ -4,20 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Header Test</title>
-  <link rel="stylesheet" href="/components/header.css" />
-  <link rel="preload" href="/assets/GGC_logo.png" as="image" type="image/png" />
+  <link rel="stylesheet" href="../components/header.css" />
+  <link rel="preload" href="../assets/GGC_logo.png" as="image" type="image/png" />
 </head>
 <body>
   <div id="main-header" data-subheading="Header Test"></div>
 
   <script type="module">
-    import { initPage } from '/components/init.js';
+    import { initPage } from '../components/init.js';
 
     initPage({
       userRole: 'admin',
       userName: 'William',
-      logoSrc: '/assets/GGC_logo.png',
-      homeHref: '/index.html'
+      logoSrc: '../assets/GGC_logo.png',
+      homeHref: '../index.html'
     });
   </script>
 </body>
