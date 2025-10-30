@@ -9,7 +9,7 @@
 .header-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
   padding: 0 5vw;
 }
@@ -18,8 +18,15 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
+  width: 100%;
+}
+
+.identity-stack,
+.context-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   text-align: center;
 }
 
@@ -62,12 +69,7 @@
 }
 
 @media screen and (max-width: 768px) {
-  .header-row {
-    flex-direction: column;
-  }
-
   .club-logo {
     max-height: 40px;
-    margin-bottom: 6px;
   }
 }
