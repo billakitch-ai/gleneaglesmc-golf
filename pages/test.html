@@ -4,22 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Header Test</title>
-  <link rel="stylesheet" href="../styles/header.css" />
+  <link rel="stylesheet" href="/components/header.css" />
+  <link rel="preload" href="/assets/GGC_logo.png" as="image" type="image/png" />
 </head>
 <body>
-  <header id="main-header" class="sticky-header" data-subheading="Header Test"></header>
+  <div id="main-header" data-subheading="Header Test"></div>
 
   <script type="module">
-    import { injectHeader } from '../styles/components/header.js';
+    import { initPage } from '/components/init.js';
 
-    window.addEventListener('DOMContentLoaded', () => {
-      injectHeader({
-        logoSrc: '', // Leave blank until logo is ready
-        designedBySrc: '', // Optional
-        homeHref: '../index.html',
-        userRole: 'admin', // Change to 'guest', 'member', etc. as needed
-        userName: 'William' // Optional personalization
-      });
+    initPage({
+      userRole: 'admin',
+      userName: 'William',
+      logoSrc: '/assets/GGC_logo.png',
+      homeHref: '/index.html'
     });
   </script>
 </body>
