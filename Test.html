@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Header Test</title>
+  <link rel="stylesheet" href="../styles/header.css" />
+</head>
+<body>
+  <header id="main-header" class="sticky-header" data-subheading="Header Test"></header>
+
+  <script type="module">
+    import { injectHeader } from '../styles/components/header.js';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      injectHeader({
+        logoSrc: '', // Leave blank until logo is ready
+        designedBySrc: '', // Optional
+        homeHref: '../index.html',
+        userRole: 'admin', // Change to 'guest', 'member', etc. as needed
+        userName: 'William' // Optional personalization
+      });
+    });
+  </script>
+</body>
+</html>
