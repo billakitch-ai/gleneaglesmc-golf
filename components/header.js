@@ -26,45 +26,17 @@ export function injectHeader({
   header.innerHTML = `
     <div class="header-content">
       <div class="header-row top-row">
-        <div class="identity-stack">
-          ${logoHTML}
-          <h1 class="club-title">Gleneagles Men's Club</h1>
-          <h2 class="page-subheading">${subheading}</h2>
-        </div>
+        ${logoHTML}
+        <h1 class="club-title">Gleneagles Men's Club</h1>
+        <h2 class="page-subheading">${subheading}</h2>
       </div>
       <div class="header-row bottom-row">
-        <div class="context-stack">
-          ${designerHTML}
-          ${welcomeHTML}
-          <div class="datetime" id="datetime" aria-live="polite"></div>
-        </div>
+        ${designerHTML}
+        ${welcomeHTML}
+        <div class="datetime" id="datetime" aria-live="polite"></div>
       </div>
     </div>
   `;
 
   startClock();
-}
-
-function startClock() {
-  function updateDateTime() {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-    const dateString = now.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
-    });
-
-    const datetimeEl = document.getElementById('datetime');
-    if (datetimeEl) {
-      datetimeEl.textContent = `${dateString} ${timeString}`;
-    }
-  }
-
-  updateDateTime();
-  setInterval(updateDateTime, 1000);
 }
