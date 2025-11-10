@@ -1,53 +1,30 @@
-
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gleneagles Mens Club</title>
-  <link rel="stylesheet" href="styles/header.css" />
+  <title>Home</title>
+  <link rel="stylesheet" href="../styles/header.css" />
+  <link rel="stylesheet" href="../styles/index.css" />
 </head>
 <body>
+  <div id="mainHeader"></div>
 
-  <!-- Sticky Header -->
-  <header class="sticky-header">
-    <div class="header-content">
-      <div class="center-block">
-        <div class="logo-row">
-          <img src="images/GE_logo.png" alt="Gleneagles Logo" class="main-logo" />
-          <img src="images/designedby.png" alt="Designed by Bill Kitch" class="designedby-logo" />
-        </div>
-        <div class="datetime" id="datetime">Loading time…</div>
-      </div>
-      <div class="home-button">
-        <a href="index.html" class="return-home">Return to Home</a>
-      </div>
-    </div>
-  </header>
-
-  <!-- Centered Navigation -->
-  <nav>
-    <h2>Players</h2>
-    <ul>
-      <li><a href="sticky_header.html">Signup for Regular Golf(M,W,F)</a></li>
-      <li><a href="sticky_header.html">Signup for the Next Tournament</a></li>
-      <li><a href="sticky_header.html">Captain: Enter scores for your group</a></li>
-      <li><a href="pages/players.html">View All Active Players</a></li>
-    </ul>
-
-    <h2>Admin</h2>
-    <ul>
-      <li><a href="pages/import.html">Import New Handicap Roster</a></li>
-      <li><a href="sticky_header.html">Money Manager Duties</a></li>
-      <li><a href="pages/tournaments.html">Managed Tournament Information</a></li>
-      <li><a href="pages/honeypot_payout.html">View and Edit Honeypot Payouts</a></li>
-    </ul>
-  </nav>
-
-  <!-- Main Content -->
-  <main>
-    <!-- Your page content goes here -->
+  <main class="home-content">
+    <h2>Welcome to Golf Tracker</h2>
+    <p>Track tournaments, manage roles, and stay in sync with your team.</p>
+    <a href="../Pages/login.html" class="cta-button">Log In</a>
   </main>
 
-  <script src="scripts/datetime.js"></script>
+  <script>
+    fetch('../components/header.html')
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById('mainHeader').innerHTML = html;
+        const script = document.createElement('script');
+        script.src = '../scripts/header.js';
+        document.body.appendChild(script);
+      });
+  </script>
 </body>
 </html>

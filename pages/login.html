@@ -3,15 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Test Page</title>
+  <title>Login</title>
   <link rel="stylesheet" href="../styles/header.css" />
+  <link rel="stylesheet" href="../styles/login.css" />
 </head>
 <body>
   <div id="mainHeader"></div>
 
-  <main class="test-content">
-    <h2>Test Page</h2>
-    <p>This is a sandbox for testing layout, components, or logic.</p>
+  <main class="login-container">
+    <form class="login-form" id="loginForm">
+      <h2>Login</h2>
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required />
+
+      <button type="submit">Log In</button>
+    </form>
   </main>
 
   <script>
@@ -22,8 +31,8 @@
         const script = document.createElement('script');
         script.src = '../components/header.js';
         document.body.appendChild(script);
-      })
-      .catch(err => console.error('Header injection failed:', err));
+      });
   </script>
+  <script src="../components/login.js"></script>
 </body>
 </html>

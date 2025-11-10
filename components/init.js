@@ -1,12 +1,5 @@
 import { injectHeader } from './header.js';
-import { getSession } from './supabaseAuth.js';
 
-injectHeader('Gleneagles Golf Club');
-
-const { session, error } = await getSession();
-
-if (session) {
-  console.log('User is logged in:', session.user.email);
-} else {
-  console.warn('No active session:', error?.message);
+export async function initPage({ userRole, userName, logoSrc }) {
+  await injectHeader('Gleneagles Golf Club', logoSrc, userName, userRole);
 }
